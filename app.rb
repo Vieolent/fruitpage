@@ -13,7 +13,57 @@ get('/fruits') do
   #Använd sql för att prata med db samt hämta allt från db
   @fruits = db.execute("SELECT * FROM fruits")
   p @fruits
-  slim(:index)
+  query = params[:q]
+  if query && !query.empty?
+    @fruits = db.execute("SELECT * FROM fruits WHERE name LIKE ?", "%#{query}%")
+  else
+    @fruits = db.execute("SELECT * FROM fruits")
+  end
+  slim(:"fruits/index")
+end
+
+get('/new') do
+  slim(:"fruits/new")
+end
+
+
+
+post('/fruits/:id/delete') do
+  #koppla till db
+  db = SQLite3::Database.new('db/fruits.db')
+  #extrahera id från sökväg för att få rätt frukt
+  denna_ska_bort = params[:id].to_i
+  #ta bort från db
+  db.execute("DELETE FROM fruits WHERE id = ?",denna_ska_bort)
+  redirect('/fruits')
+end
+
+post('/fruits') do
+  new_fruit = params[:new_fruit]
+  amount = params[:amount].to_i
+  db = SQLite3::Database.new('db/fruits.db')
+  db.execute("INSERT INTO fruits (name, amount) VALUES (?,?)",[new_fruit,amount])
+  redirect('/fruits')
+end
+
+get("/fruits/:id/edit") do 
+id = params[:id].to_i
+
+  db = SQLite3::Database.new("db/fruits.db")
+  db.results_as_hash = true
+  @selected_fruit = db.execute("SELECT * FROM fruits WHERE id=?", id).first
+  slim(:"fruits/edit")
+end
+
+post('/fruits/:id/update') do
+
+  db = SQLite3::Database.new('db/fruits.db')
+  id = params[:id].to_i
+  name = params[:name]
+  amount = params[:amount].to_i
+  db.execute("UPDATE fruits SET name=?, amount=? WHERE id=?", [name,amount,id])
+
+  redirect('/fruits')
 end
 
 get('/') do
